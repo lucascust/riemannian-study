@@ -82,10 +82,11 @@ def download_sample_data(dataset="ssvep", subject=1, session=1):
 destination = download_sample_data(dataset="ssvep", subject=12, session=1)
 # Read data in MNE Raw and numpy format
 raw = Raw(destination, preload=True, verbose='ERROR')
+print(raw.times)
 events = find_events(raw, shortest_event=0, verbose=False)
 raw = raw.pick_types(eeg=True)
 event_id = {'13 Hz': 2, '17 Hz': 4, '21 Hz': 3, 'resting-state': 1}
-# Averiguar o funcionamento disso #####################################################################
+# Pega sfreq contido no "raw"
 sfreq = int(raw.info['sfreq'])
 
 eeg_data = raw.get_data()
