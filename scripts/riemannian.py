@@ -7,7 +7,9 @@ from mne.io import Raw, RawArray
 
 # pyriemann import
 from pyriemann.estimation import Covariances
-
+# cross validation
+import pyriemann
+mdm = pyriemann.classification.MDM()
 
 
 raw = Raw("./data/subject12_run2_raw.fif", preload=True, verbose='ERROR')
