@@ -16,15 +16,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold
 
 
-
 raw = Raw("./data/subject9_2.fif", preload=True, verbose='ERROR')
 print(raw)
-events = find_events(raw)
-print (events)
+events = find_events(raw, shortest_event=0, verbose=False)
+print(events)
 # Pega Channels baseado no parametro
 #raw = raw.pick_types(eeg=True)
 
-#Bandpass filter
+# Bandpass filter
 
 
 # Plot MNE
@@ -50,11 +49,12 @@ epochs_data = epochs.get_data()
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = KFold(n_splits=10, shuffle=True, random_state=42)
 
-clf = make_pipeline(Covariances(), TangentSpace(metric='riemann'), LogisticRegression())
+clf = make_pipeline(Covariances(), TangentSpace(
+    metric='riemann'), LogisticRegression())
 
 for train_idx, test_idx in cv.split(epochs_data):
     y_train, y_test = labels[train_idx], labels[test_idx]
-    clf.fit(epochs_data[:28], y_train[:min(28,len(y_train))])
+    clf.fit(epochs_data[:28], y_train[:min(28, len(y_train))])
     preds[test_idx] = clf.predict(epochs_data[test_idx])
 
 
@@ -72,7 +72,7 @@ plt.show()
 #var = epochs.get_data()
 # cov_raw = scikitlearn.pipeline(Covariances(estimator='lwf').transform(var), TangentSpace().transform(epochs.get_data(var), logisticRegression.fit(x,y,weight))
 
-#Tangent 
+# Tangent
 
 
 print("stop")
@@ -85,7 +85,6 @@ print("stop")
 
 # # cross validation
 # mdm = pyriemann.classification.MDM()
-
 
 
 # accuracy = cross_val_score(mdm, cov, y)
