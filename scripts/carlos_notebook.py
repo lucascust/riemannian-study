@@ -15,7 +15,7 @@ from pyriemann.utils.viz import plot_confusion_matrix
 
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_val_score
 
 # lib to save the trained model
 import pickle
