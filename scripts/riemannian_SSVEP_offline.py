@@ -81,8 +81,7 @@ def download_sample_data(dataset="ssvep", subject=1, session=1):
 # Download data
 destination = download_sample_data(dataset="ssvep", subject=12, session=1)
 # Read data in MNE Raw and numpy format
-# raw = Raw(destination, preload=True, verbose='ERROR')
-raw = Raw('./data/subject12_run2_raw.fif', preload=True, verbose='ERROR')
+raw = Raw(destination, preload=True, verbose='ERROR')
 print(raw.times)
 events = find_events(raw, shortest_event=0, verbose=False)
 raw = raw.pick_types(eeg=True)
