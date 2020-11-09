@@ -2,7 +2,6 @@
 ====================================================================
 Offline SSVEP-based BCI Multiclass Prediction
 ====================================================================
-
 Building extended covariance matrices for SSVEP-based BCI. The
 obtained matrices are shown. A Minimum Distance to Mean classifier
 is trained to predict a 4-class problem for an offline setup.
@@ -18,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # mne import
-from mne import get_config, set_config, find_events, create_info, Epochs
+from mne import get_config, set_config, find_events, create_info, Epochs, read_events
 from mne.datasets.utils import _get_path
 from mne.utils import _fetch_file, _url_to_local_path
 from mne.io import Raw, RawArray
@@ -31,8 +30,6 @@ from pyriemann.classification import MDM
 # scikit-learn import
 from sklearn.model_selection import cross_val_score, RepeatedKFold
 
-# Butter filter
-from scipy.signal import filtfilt, butter
 
 ###############################################################################
 # Loading EEG data
@@ -42,7 +39,6 @@ from scipy.signal import filtfilt, butter
 
 def download_sample_data(dataset="ssvep", subject=1, session=1):
     """Download BCI data for example purpose
-
     Parameters
     ----------
     dataset : str
@@ -52,7 +48,6 @@ def download_sample_data(dataset="ssvep", subject=1, session=1):
         Subject id, dataset specific (default: 1)
     session : int, default 1
         Session number%load , dataset specific (default: 1)
-
     Returns
     -------
     destination : str
@@ -83,7 +78,8 @@ def download_sample_data(dataset="ssvep", subject=1, session=1):
 # Download data
 destination = download_sample_data(dataset="ssvep", subject=12, session=1)
 # Read data in MNE Raw and numpy format
-raw = Raw(destination, preload=True, verbose='ERROR')
+# raw = Raw(destination, preload=True, verbose='ERROR')
+raw = Raw('.\data\\subject12_run1_raw.fif', preload=True, verbose='ERROR')
 print(raw.times)
 events = find_events(raw, shortest_event=0, verbose=False)
 raw = raw.pick_types(eeg=True)
@@ -139,32 +135,13 @@ def _bandpass_filter(signal, lowcut, highcut):
     return signal.copy().filter(l_freq=lowcut, h_freq=highcut,
                                 method="iir").get_data()
 
-## (Custodio Edit) Another Filter Method
-## 5th Order Buttersworth
-def butter_bandpass(signal, lowcut, highcut, fs=254, order=1, filttype='forward-backward'):
-    signal = signal.get_data()
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    high = highcut / nyq
-    b, a = butter(order, [low, high], btype='band')
-    if filttype == 'forward':
-        filtered = lfilter(b, a, signal, axis=-1)
-    elif filttype == 'forward-backward':
-        filtered = filtfilt(b, a, signal, axis=-1)
-    else:
-        raise ValueError("Unknown filttype:", filttype)    
-    return filtered
-
 # We stack the filtered signals to build an extended signal
 frequencies = [13., 17., 21.]
 freq_band = 0.1
 ext_signal = np.vstack([_bandpass_filter(raw,
                                          lowcut=f-freq_band,
-                                         highcut=f+freq_band,
-                                         )
+                                         highcut=f+freq_band)
                         for f in frequencies])
-
-
 
 ###############################################################################
 # Creating an MNE Raw object from the extended signal and plot it
@@ -274,3 +251,56 @@ print("MDM accuracy: {:.2f}% +/- {:.2f}".format(np.mean(scores)*100,
 # [2] E. K. Kalunga, S. Chevallier, Q. Barthélemy, E. Monacelli,
 # "Review of Riemannian distances and divergences, applied to SSVEP-based BCI", 
 # Neuroinformatics, 2020.
+
+raw = Raw('./data/record-[2014.03.10-20.41.35]_raw.fif', preload=True, verbose='ERROR')
+event_fname = './data/record-[2014.03.10-20.41.35]-eve.fif'
+events = read_events(event_fname)
+raw = raw.pick_types(eeg=True)
+event_id = {'13 Hz': 2, '17 Hz': 4, '21 Hz': 3, 'resting-state': 1}
+# Pega sfreq contido no "raw"
+sfreq = int(raw.info['sfreq'])
+
+eeg_data = raw.get_data()
+
+def _bandpass_filter(signal, lowcut, highcut):
+    """ Bandpass filter using MNE """
+    return signal.copy().filter(l_freq=lowcut, h_freq=highcut,
+                                method="iir").get_data()
+
+# We stack the filtered signals to build an extended signal
+frequencies = [13., 17., 21.]
+freq_band = 0.1
+ext_signal = np.vstack([_bandpass_filter(raw,
+                                         lowcut=f-freq_band,
+                                         highcut=f+freq_band)
+                        for f in frequencies])
+
+###############################################################################
+# Creating an MNE Raw object from the extended signal and plot it
+
+info = create_info(
+    ch_names=sum(list(map(lambda s: [ch+s for ch in raw.ch_names],
+                          ["-13Hz", "-17Hz", "-21Hz"])), []),
+    ch_types=['eeg'] * 24,
+    sfreq=sfreq)
+
+raw_ext = RawArray(ext_signal, info)
+raw_ext.plot(duration=n_seconds, start=14, n_channels=24,
+             scalings={'eeg': 5e-4}, color={'eeg': 'steelblue'})
+
+###############################################################################
+# Building Epochs and plotting 3 s of the signal from electrode Oz for a trial
+
+epochs = Epochs(raw_ext, events, event_id, tmin=2, tmax=5, baseline=None)
+
+cov_ext_trials = Covariances(estimator='lwf').transform(epochs.get_data())
+
+cov_centers = np.empty((len(event_id), 24, 24))
+for i, l in enumerate(event_id):
+    cov_centers[i] = mean_riemann(cov_ext_trials[events[:, 2] == event_id[l]])
+
+cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=42)
+mdm = MDM(metric=dict(mean='riemann', distance='riemann'))
+scores = cross_val_score(mdm, cov_ext_trials, events[:, 2], cv=cv, n_jobs=1)
+print("MDM accuracy: {:.2f}% +/- {:.2f}".format(np.mean(scores)*100,
+                                                np.std(scores)*100))
