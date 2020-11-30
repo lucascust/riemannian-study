@@ -28,6 +28,8 @@ from sklearn.model_selection import cross_val_score, RepeatedKFold
 # lib to save the trained model
 import pickle
 
+from time import time
+
 
 def _bandpass_filter(signal, lowcut, highcut):
     """ Bandpass filter using MNE """
@@ -47,7 +49,7 @@ classes = ['Resting', '13Hz', '21Hz', '17Hz']
 channels = array(['Oz','O1','O2','PO3','POz','PO7','PO8','PO4'])
 
 ###############################################################################
-
+t1 = time()
 # get label
 labels = list()
 for e in event_type:
@@ -64,7 +66,7 @@ info = create_info(
     ch_types=['eeg'] * 8,
     sfreq=sfreq)
 
-raw_ext = RawArray(raw_signal, info)
+raw_ext = RawArray(raw_signal, info, verbose=False)
 ################################################################################
 
 frequencies = [13., 17., 21.]
@@ -92,33 +94,34 @@ cov_ext_trials = Covariances(estimator='lwf').transform(ext_trials)
 
 ###############################################################################
 ## ajustar proporção 70 para 30
-# import random
+import random
 
-# i = 0
-# y_train = np.array([])
-# n = len(labels)*0.7
-# n = int(n)
-# cov_train = empty((n, 24, 24))
-# while (i < n):
+i = 0
+y_train = np.array([])
+n = len(labels)*0.7
+n = int(n)
+cov_train = empty((n, 24, 24))
+while (i < n):
 
-#     val = random.randint(0, len(labels)-1)
+    val = random.randint(0, len(labels)-1)
 
-#     y_train = np.append(y_train, labels[val])
-#     labels = np.delete(labels, val)
+    y_train = np.append(y_train, labels[val])
+    labels = np.delete(labels, val)
     
-#     cov_train[i,:,:] = cov_ext_trials[val,:,:]
-#     cov_ext_trials = np.delete(cov_ext_trials, val, axis=0)
+    cov_train[i,:,:] = cov_ext_trials[val,:,:]
+    cov_ext_trials = np.delete(cov_ext_trials, val, axis=0)
     
     
-#     i += 1
+    i += 1
 
-# y_test = labels
-# cov_test = cov_ext_trials
-y_train = labels[::2] # take even indexes
-y_test = labels[1::2] # take odd indexes
+y_test = labels
+cov_test = cov_ext_trials
 
-cov_train = cov_ext_trials[::2]
-cov_test = cov_ext_trials[1::2]
+# y_train = labels[::2] # take even indexes
+# y_test = labels[1::2] # take odd indexes
+
+# cov_train = cov_ext_trials[::2]
+# cov_test = cov_ext_trials[1::2]
 
 
 cov_centers = empty((len(classes), 24, 24))
@@ -126,6 +129,9 @@ cov_centers = empty((len(classes), 24, 24))
 for i, l in enumerate(classes):
     cov_centers[i, :, :] = mean_riemann(cov_train[y_train == l, :, :])
 
+
+## Mean calculated with Affine-Invariant Riemannian metric (AIRM)
+## implemented in pyRiemann
 accuracy = list()
 for sample, labels in zip(cov_test, y_test):
     dist = [distance_riemann(sample, cov_centers[m]) for m in range(len(classes))]
@@ -133,5 +139,7 @@ for sample, labels in zip(cov_test, y_test):
         accuracy.append(1)
     else: accuracy.append(0)
 test_accuracy = 100.*array(accuracy).sum()/len(y_test)
-            
+
+t2 = time()            
+print ('tempo: ' + str(t2-t1))
 print ('Evaluation accuracy on test set is %.2f%%' % test_accuracy)

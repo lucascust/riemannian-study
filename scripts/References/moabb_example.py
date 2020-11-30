@@ -1,16 +1,15 @@
 """
-===========================
-Cross Subject SSVEP
-===========================
-This example shows how to perform a cross subject analysis on a SSVEP dataset.
-We will compare two pipelines :
-- Riemannian Geometry
-- CCA
-We will use the SSVEP paradigm, which uses the AUC as metric.
+This file classify SSVEP through MOABB library 
+Compares CCA method with Riemann Geometry + Logistic Regression
+
+This file do:
+- Uses more than one subject
+- Uses SciKit pipeline, passing 'RG + LogReg' param (Riemann Geometry + Logistic Regression)
+--- Pipeline of (MOABB) ExtendedSSVEPSignal -> (pyRi) Covariances -> pyRi TangentSpace -> (sklearn) LogisticRegression
+- Uses SciKit pipeline, passing 'CCA' param 
+--- pass only (MOABB) SSVEP_CCA
+- Uses (MOABB) CrossSubjectEvaluation to evaluate results
 """
-# Authors: Sylvain Chevallier <sylvain.chevallier@uvsq.fr>
-#
-# License: BSD (3-clause)
 
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression

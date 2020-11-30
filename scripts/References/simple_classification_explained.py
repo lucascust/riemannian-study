@@ -1,5 +1,21 @@
-# Import the necessary libraries
+'''
+This documente classificate SSVEP Signal using:
+MNE Objects (Raw, Epoch)
+SciKit-learn Pipeline of
+ - Covariances matrix transform -> Tangent Space fit -> Logistic Regression
 
+This File do:
+- MNE pure filter 
+- Save model with pickle
+- Predict all samples (not only trials)
+
+This file do not:
+- Separe Train and Test data
+- Separe frequencies to filter
+'''
+
+
+# Import the necessary libraries
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -21,15 +37,14 @@ from sklearn.model_selection import KFold
 import pickle
 
 # Get the dataset with the data to reproduce the real time acquisition of brain data - Pass the data for a RAW variable
-raw_fname = '../data/record-[2012.07.19-11.24.02]_raw.fif'
+raw_fname = './data/record-[2012.07.19-11.24.02]_raw.fif'
 raw = Raw(raw_fname, preload=True, verbose=False)
 
 # replace baselining with high-pass
 raw.filter(2, None, method='iir') 
 
 # find events and generate epochs
-
-event_fname = '../data/record-[2014.03.10-19.17.37]-eve.fif'
+event_fname = './data/record-[2014.03.10-19.17.37]-eve.fif'
 events = read_events(event_fname)
 event_id = {'13 Hz': 2, '17 Hz': 4, '21 Hz': 3, 'resting-state': 1}
 

@@ -1,3 +1,5 @@
+## This file try to get data from CSV file
+
 import csv
 import numpy as np
 

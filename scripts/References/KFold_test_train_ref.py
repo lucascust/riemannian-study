@@ -1,3 +1,14 @@
+'''
+This file DONT work, only reference of:
+
+What try to do:
+- Use KFold function,
+- Use Sci-kit learn Pipeline
+- Separe Train and Test data
+- Plot confusion Matrix
+'''
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,7 +27,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold
 
 
-raw = Raw("./data/subject9_2.fif", preload=True, verbose='ERROR')
+raw = Raw("./data/record-[2014.03.10-20.41.35]_raw.fif", preload=True, verbose='ERROR')
 print(raw)
 events = find_events(raw, shortest_event=0, verbose=False)
 print(events)
