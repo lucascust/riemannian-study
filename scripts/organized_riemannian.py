@@ -23,6 +23,8 @@ from sklearn.model_selection import cross_val_score, RepeatedKFold
 # lib to save the trained model
 import pickle
 
+import time
+
 # Open EEG file given raw and event paths
 def openEEGFile(raw_file_path, events_file_path):
 
@@ -80,6 +82,7 @@ event_id = {'13 Hz': 2, '17 Hz': 4, '21 Hz': 3, 'resting-state': 1}
 
 epochs = Epochs(raw_ext, events, event_id, tmin=2, tmax=5, baseline=None)
 
+t1 = time.time()
 cov_ext_trials = Covariances(estimator='lwf').transform(epochs.get_data())
 
 ###############################################################################
@@ -90,8 +93,11 @@ labels = epochs.events[:, -1]
 
 mdm = MDM(metric=dict(mean='riemann', distance='riemann'))
 mdm.fit(cov_ext_trials, labels)
+t2 = time.time()
 
 prediction_labeled = mdm.predict(cov_ext_trials)
 
+
+print("predict time = " + str(t2-t1))
 print(labels)
 print(prediction_labeled)
