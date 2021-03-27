@@ -1,4 +1,5 @@
 {
     "python.pythonPath": "C:\\Users\\lucas\\anaconda3\\python.exe",
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
+    "jupyter.jupyterServerType": "local"
 }

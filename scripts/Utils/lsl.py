@@ -1,23 +1,26 @@
 import pylsl
 
+import numpy as np
+
 from pylsl import StreamInlet, resolve_stream
+import keyboard
+import time
 
 # first resolve an EEG stream on the lab network
 print("looking for an EEG stream...")
-streams = resolve_stream('name', 'EEG')
+streams = resolve_stream('name', 'openvibeSignal')
 
 # create a new inlet to read from the stream
 inlet = StreamInlet(streams[0])
-count=0
-arr=[]
-while True:
-    # get a new sample (you can also omit the timestamp part if you're not
-    # interested in it)
-    sample, timestamp = inlet.pull_sample()
-    print(timestamp, sample,count)
-    arr.append(sample)
-    count=count+1
-print(len(arr))
 
-print("Aqui são so dados")
-print(arr)
+sample, timestamp = inlet.pull_sample()
+time_window = np.array(sample)
+while not keyboard.is_pressed('s'):
+    t1 = time.time()
+    sample, timestamp = inlet.pull_sample()
+    sample = np.array(sample)
+    time_window = np.vstack((time_window, sample))
+    t2 = time.time()
+    print("time: ", t2-t1)
+
+print(time_window)

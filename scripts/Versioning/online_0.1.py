@@ -72,7 +72,7 @@ def createRaw(signal, raw, filtered):
 ###############################################################################
 
 ## Option to online retraining
-retrain = False
+retrain = True
 
 ## Files to online simulation
 raw_file = './data/record-[2012.07.06-19.06.14]_raw.fif'
@@ -133,7 +133,7 @@ for i, evoked in enumerate(iter_evoked):
     evoked_filtered_signal = np.expand_dims(evoked_filtered_signal, axis=0)
     epochs_data = np.concatenate((epochs_data, evoked_filtered_signal), axis=0)
 
-
+    print(epochs_data)
     ## No Filtering
     # raw_evoked_signal = evoked.data
     # raw_evoked_signal = np.array(raw_evoked_signal)

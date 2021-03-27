@@ -2,12 +2,16 @@
 Online SSVEP AI Classifier with Riemannian Geometry
 
 - Create a machine leaning model with MDM classification
-- Simulate raw EEG input and predict each trial based in offline model 
+- Get data via LSL
+- The training inputs labels (not realistic simulation)
 - (optional) Retrain model for each fourth input
 """
 
 import time
 import numpy as np
+import keyboard
+
+from pylsl import StreamInlet, resolve_stream
 
 from mne import get_config, set_config, find_events, read_events, create_info, Epochs
 from mne.io import Raw, RawArray
@@ -43,7 +47,6 @@ def _bandpass_filter(signal, frequencies, freq_range):
     return (np.vstack(ext_signal))
 
 
-
 def createRaw(signal, raw, filtered):
     '''
     Create MNE Raw Object based on other Raw
@@ -69,14 +72,11 @@ def createRaw(signal, raw, filtered):
     
     return RawArray(signal, info, verbose=False)
 
-###############################################################################
 
+###############################################################################
 ## Option to online retraining
 retrain = True
 
-## Files to online simulation
-raw_file = './data/record-[2014.03.10-20.41.35]_raw.fif'
-events_file = './data/record-[2014.03.10-20.41.35]-eve.fif'
 
 ## FIles to offilne base
 offline_raw_file = './data/record-[2012.07.06-19.06.14]_raw.fif'
@@ -88,85 +88,88 @@ event_id = {'13 Hz': 2, '17 Hz': 4, '21 Hz': 3, 'resting-state': 1}
 frequencies = [13., 17., 21.]
 frequency_range = 0.1
 
-## Loading EEG data for online prediction
-raw, events = openEEGFile(raw_file, events_file)
-
-# Filtering data for online training
-signal = _bandpass_filter(raw, frequencies, frequency_range)
-raw = createRaw(signal, raw, filtered=True)
-
-epochs = Epochs(raw, events, event_id, tmin=2, tmax=5, baseline=None)
-labels = epochs.events[:, -1]
 
 ## Loading EEG data for offilne ML model base
 offline_raw, offline_events = openEEGFile(offline_raw_file, offline_events_file)
-
+raw = offline_raw
 # Filtering data for offline training
 filtered_offline_signal = _bandpass_filter(offline_raw, frequencies, frequency_range)
 offline_raw = createRaw(filtered_offline_signal, offline_raw, filtered=True)
 
 offline_epochs = Epochs(offline_raw, offline_events, event_id, tmin=2, tmax=5, baseline=None)
 offline_epochs_data = offline_epochs.get_data()
-
+labels = offline_epochs.events[:, -1]
 # Creating ML model
 offline_cov_matrix = Covariances(estimator='lwf').transform(offline_epochs_data)
 mdm = MDM(metric=dict(mean='riemann', distance='riemann'))
 mdm.fit(offline_cov_matrix, labels)
 
-# Evoking trials to simulate online input
-iter_evoked = epochs.iter_evoked()
 epochs_data = offline_epochs_data
 time_array = []
 
-pre_predict = mdm.predict(offline_cov_matrix)
-print("labels: ")
-print(labels)
+print("\nlabels: ")
+print(labels, "\n")
 
-for i, evoked in enumerate(iter_evoked):
+# first resolve an EEG stream on the lab network
+print("looking for an EEG stream...")
+streams = resolve_stream('name', 'openvibeSignal')
+# create a new inlet to read from the stream
+inlet = StreamInlet(streams[0])
+sample, timestamp = inlet.pull_sample()
+time_window = np.array(sample)
+sample, timestamp = inlet.pull_sample()
+sample = np.array(sample)
+time_window = np.column_stack((sample, time_window))
+time_window_base = time_window
+count = 0
+while not keyboard.is_pressed('s'):
+    time_window = time_window_base
+    while time_window.shape[1] < 769:
+        sample, timestamp = inlet.pull_sample()
+        sample = np.array(sample)
+        time_window = np.column_stack((time_window, sample))
 
-    
-    evoked_raw = createRaw(evoked.data, raw, filtered=False)
+
+        
+    signal_raw = createRaw(time_window, raw, filtered=False)
 
     ## Start Time Counting
     time_1 = time.time()
 
     ## Filtering
-    # evoked_filtered_signal = _bandpass_filter(evoked_raw, frequencies, frequency_range)
-    # evoked_filtered_signal = np.array(evoked_filtered_signal)
-    # evoked_filtered_signal = np.expand_dims(evoked_filtered_signal, axis=0)
-    # epochs_data = np.concatenate((epochs_data, evoked_filtered_signal), axis=0)
+    filtered_signal = _bandpass_filter(signal_raw, frequencies, frequency_range)
+    filtered_signal = np.array(filtered_signal)
+    filtered_signal = np.expand_dims(filtered_signal, axis=0)
+    epochs_data = np.concatenate((epochs_data, filtered_signal), axis=0)
 
 
     ## No Filtering
-    raw_evoked_signal = evoked.data
-    raw_evoked_signal = np.array(raw_evoked_signal)
-    raw_evoked_signal = np.expand_dims(raw_evoked_signal, axis=0)
-    epochs_data = np.concatenate((epochs_data, raw_evoked_signal), axis=0)
-
+    # raw_evoked_signal = evoked.data
+    # raw_evoked_signal = np.array(raw_evoked_signal)
+    # raw_evoked_signal = np.expand_dims(raw_evoked_signal, axis=0)
 
     cov_ext_trials = Covariances(estimator='lwf').transform(epochs_data)
 
-    labels = np.append(labels, labels[i])
+    labels = np.append(labels, labels[count])
 
-    if (i % 4 == 0 and i != 0 and retrain == True):
+    if (count % 4 == 0 and count != 0 and retrain == True):
         mdm.fit(cov_ext_trials, labels)
+        print("retrained")
 
     prediction_labeled = mdm.predict(cov_ext_trials)
 
     # Finish Time Counter    
     time_2 = time.time()
-    
+
     time_array.append(time_2 - time_1)
-    
-    # print ("Predictions: ")
-    # print (prediction_labeled)
+    count+=1
+    print ("Predictions: ")
+    print (prediction_labeled[:32])
+    print (prediction_labeled[32:])
     # print ("Label: " + str(labels[i]))
-    # print ("Time: " + str(time_2 - time_1) + '\n')
+    print ("Time: " + str(time_2 - time_1) + '\n')
 
 
-
-print ("Pre-prediction: ")
-print (pre_predict)
 
 print ("Predictions: ")
 print (prediction_labeled[:32])
