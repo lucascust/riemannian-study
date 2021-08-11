@@ -39,7 +39,7 @@ def _bandpass_filter(signal, lowcut, highcut):
 ###############################################################################
 # Loading EEG data
 
-with gzip.open('./data/record-[2012.07.06-19.06.14].pz', 'rb') as f:
+with gzip.open('./data/old_data/record-[2012.07.06-19.06.14].pz', 'rb') as f:
     o = pickle.load(f, encoding='latin1')
 raw_signal = o['raw_signal'].T
 event_pos = o['event_pos'].reshape((o['event_pos'].shape[0]))

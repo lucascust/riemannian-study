@@ -59,8 +59,8 @@ def createNewRaw(filtered_ext_signal, raw):
 ###############################################################################
 # Loading EEG data
 
-raw_fname = './data/record-[2014.03.10-20.41.35]_raw.fif'
-events_fname = './data/record-[2014.03.10-20.41.35]-eve.fif'
+raw_fname = './data/old_data/record-[2014.03.10-20.41.35]_raw.fif'
+events_fname = './data/old_data/record-[2014.03.10-20.41.35]-eve.fif'
 
 raw, events = openEEGFile(raw_fname, events_fname)
 

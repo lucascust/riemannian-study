@@ -291,7 +291,7 @@ raw_ext.plot(duration=n_seconds, start=14, n_channels=24,
 ###############################################################################
 # Building Epochs and plotting 3 s of the signal from electrode Oz for a trial
 
-epochs = Epochs(raw_ext, events, event_id, tmin=2, tmax=5, baseline=None)
+epochs = Epochs(raw_ext, events, event_id, tmin=2, tmax=200, baseline=None)
 
 cov_ext_trials = Covariances(estimator='lwf').transform(epochs.get_data())
 
@@ -301,6 +301,7 @@ for i, l in enumerate(event_id):
 
 cv = RepeatedKFold(n_splits=2, n_repeats=10, random_state=42)
 mdm = MDM(metric=dict(mean='riemann', distance='riemann'))
+
 scores = cross_val_score(mdm, cov_ext_trials, events[:, 2], cv=cv, n_jobs=1)
 print("MDM accuracy: {:.2f}% +/- {:.2f}".format(np.mean(scores)*100,
                                                 np.std(scores)*100))
