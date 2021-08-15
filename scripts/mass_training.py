@@ -31,8 +31,11 @@ import time
 dataset = SSVEPExo()
 interval = dataset.interval
 
-paradigm = SSVEP(fmin=10, fmax=25, n_classes=3)
-paradigm_fb = FilterBankSSVEP(filters=None, n_classes=3)
+
+paradigm_fb = FilterBankSSVEP(filters=None, n_classes=4)
+
+
+filtered_db = paradigm_fb.get_data(dataset, return_epochs=False)
 
 pipelines_fb = {}
 pipelines_fb["RG+LogReg"] = make_pipeline(
